@@ -166,10 +166,10 @@ dryseq=function(countData,group,zone,period=24,sample_name=colnames(countData,ba
   chosen_model_mean_BICW = apply(BICW_mean,1,max)
 
   ################
-  # coefficients / mean, amplitude and phase
+  # coefficients / mean, linear coef, non-linear coef
   ###############
 
-  message("extracting rhythmic parameters")
+  message("extracting spatial parameters")
 
   parameters=NULL
 
@@ -178,7 +178,7 @@ dryseq=function(countData,group,zone,period=24,sample_name=colnames(countData,ba
     cm_r = chosen_model[i]
     cm_m = chosen_model_mean[i]
     dds= DDS_dev[[cm_r]][[cm_m]][[1]]
-    out = compute_param(dds, gene ,period,N)
+    out = compute_param(dds, gene ,N)
     return(data.frame(row.names= gene, t(matrix(out)))           )
   }
 

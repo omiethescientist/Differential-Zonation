@@ -105,12 +105,12 @@ do_all_lm_mr = function(x,countData,my_mat_r, my_mat_m, chosen_model){
 }
 
 ####################################
-compute_param = function(dds, gene, period=T_,N){
+compute_param = function(dds, gene, N){
 
   dds = dds[gene,]
   param = c(paste(rep(c('u','a','b'),each=N),rep(1:N,3), sep = "."))
 
-  paramout = rep(NA,N*6)
+  paramout = rep(NA,N*3)
 
   for(i in 1:N){
 
@@ -122,15 +122,15 @@ compute_param = function(dds, gene, period=T_,N){
     if(length(a) ==0) a=NA
     if(length(b) ==0) b=NA
 
-    phase=period/(2*pi)*atan2(b,a)
-    amp =2*sqrt(a^2+b^2)
-    relamp=0.5*amp/u
-    if(!is.na(phase)){
-      #if(phase<0) phase=phase+period
-      #if(phase>period) phase=phase-period
-      phase=phase%%period
-    }
-    paramout[(1:6 + 6*(i-1))] = c(u,a,b,amp,relamp,phase)
+    # phase=period/(2*pi)*atan2(b,a)
+    # amp =2*sqrt(a^2+b^2)
+    # relamp=0.5*amp/u
+    # if(!is.na(phase)){
+    #   #if(phase<0) phase=phase+period
+    #   #if(phase>period) phase=phase-period
+    #   phase=phase%%period
+    # }
+    paramout[(1:3 + 3*(i-1))] = c(u,a,b)
   }
 
   #names(paramout) = c(paste(c('mean','a','b','amp','relamp','phase'),rep(1:N,each =6), sep = "_"))

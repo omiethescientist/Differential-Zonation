@@ -3,7 +3,7 @@
 #' This function performs a rhythmicity analysis based on generalized linear models with a subsequent models selection. The function accepts raw count data from a temporal RNA-Seq dataset of two or more groups. The function outputs parameters mean, phase and amplitude are for each group.
 #' @param countData	matrix containing non-negative integers; each column represents a sample, each row represents a gene/transcript.
 #' @param group	vector containing the name of each sample.
-#' @param time	vector containing numeric values of the time for each sample.
+#' @param zone	vector containing numeric values of the zone for each sample.
 #' @param period	numeric value to indicate period length of the oscillation. Default: circadian data period of 24 h.
 #' @param sample_name	vector containing sample names. Default: colnames are sample names.
 #' @param batch	vector containing potential batch effects between samples. Default: no batch effect.
@@ -11,8 +11,8 @@
 #' @return a list that contains the following data.frames: results (summary of results), parameters (rhythmic parameters), ncounts (normalized counts), counts (raw counts), cook (cook's distance)
 #' @examples countData = simData[["countData"]]
 #' group = simData[["group"]]
-#' time  = simData[["time"]]
-#' dryList = dryseq(countData,group,time)
+#' zone  = simData[["zone"]]
+#' dryList = dryseq(countData,group,zone)
 #' head(dryList[["results"]])    # data frame summarizing results
 #' head(dryList[["parameters"]]) # coefficients: phase, amplitude and mean for each group
 #' head(dryList[["ncounts"]])    # normalized counts
@@ -29,7 +29,7 @@
 #'     \cr \cr   Var(\emph{Y_gs}) = E[(\emph{Y_gs} + \emph{θ_g} \emph{μ^2_gs})]\cr \cr
 #'     The fit uses a generalized linear model with a logarithmic link function. Sample specific size factor (λ_s) is defined as an offset. The full GLM is defined as follows:
 #'     \cr \cr log(\emph{μ_gbcs}) = \emph{m_gb} + \emph{m_gc} + \emph{α_gc} cos(\emph{ω t(s)}) + \emph{β_gc} sin(\emph{ω t(s)}) + log(\emph{λ_t(s)})\cr \cr
-#'      μ is the raw count for gene g, condition/group c and Zeitgeber/circadian time t. α and β are coefficients of the cosine and sine functions, respectively. m is a coefficient to describe a mean expression level.
+#'      μ is the raw count for gene g, condition/group c and Zeitgeber/circadian zone t. α and β are coefficients of the cosine and sine functions, respectively. m is a coefficient to describe a mean expression level.
 #'      When necessary, a batch specific mean (m) can be given to the dryseq function to account for technical batch effects.
 #'      A technical batch effect is not allowed to be confounding so the resulting model matrix is fully ranked.
 #'      To select an optimal gene-specific model, dryseq first assesses rhythmicity across the different conditions. To this end, dryR defines different models across all groups.
@@ -46,11 +46,11 @@
 #'      The model selection is sensitive to outliers: dryseq provide a cook's distance for each gene. A fit for a gene with a maximum cook's distance of higher than 1 should be considered with care.
 #' @references Love, M.I., Huber, W., Anders, S. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology
 #' @references Anders, S. and Huber, W. (2014) Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. Genome Biology
-dryseq=function(countData,group,time,period=24,sample_name=colnames(countData),batch=rep("A",length(sample_name)),n.cores=round(parallel::detectCores()*.6,0) ){
+dryseq=function(countData,group,zone,period=24,sample_name=colnames(countData,batch=rep("A",length(sample_name),n.cores=round(parallel::detectCores()*.6,0) ){
 #update
   doParallel::registerDoParallel(cores=n.cores)
-  sel       = order(group,time)
-  time      = time[sel]
+  sel       = order(group,zone)
+  zone      = zone[sel]
   group     = group[sel]
   countData = countData[,sel]
   batch = batch[sel]
@@ -58,21 +58,21 @@ dryseq=function(countData,group,time,period=24,sample_name=colnames(countData),b
 
   countData = countData[rowSums(countData)!=0,]
 
-  s1 <- sin(2*pi*time/period)
-  c1 <- cos(2*pi*time/period)
+  p1 <- zone
+  p2 <- 0.5*(3*zone^2-1)
 
-  conds  = cbind(group,s1,c1,batch)
-  colnames(conds) = c("group","s1","c1","batch")
+  conds  = cbind(group,p1,p2,batch)
+  colnames(conds) = c("group","p1","p2","batch")
 
   colData <- data.frame(row.names=colnames(countData), conds)
   N=length(unique(group))
 
   ############################
-  # FIT RHYTHMS
+  # FIT Zonation
 
-  message("fitting rhythmic models")
+  message("fitting zonation models")
 
-  models = create_matrix_list(time,group, N,period)
+  models = create_matrix_list(zone,group, N,period)
   #Reorder u, a, b
   models = lapply(models, function(l) l[,c(grep("u",colnames(l)),grep("a|b",colnames(l)))]   )
 
@@ -87,7 +87,7 @@ dryseq=function(countData,group,time,period=24,sample_name=colnames(countData),b
     models = lapply(models, function(l) l[,c(grep("u",colnames(l)),grep("BATCH",colnames(l)),grep("a|b",colnames(l)))]   )
   }
 
-  dds = DESeq2::DESeqDataSetFromMatrix(countData = countData, colData = colData,  design=~1)
+  dds = DESeqDataSetFromMatrix(countData = countData, colData = colData,  design=~1)
   dds.full = DESeq2::DESeq(dds, full=models[[length(models)]], betaPrior = F, fitType = "parametric", test = "Wald", parallel =T, quiet = T)
 
   deviances = sapply(models[-length(models)], function(m){
@@ -207,7 +207,7 @@ dryseq=function(countData,group,time,period=24,sample_name=colnames(countData),b
 
   out = list()
 
-  out[["time"]]        = time
+  out[["zone"]]        = zone
   out[["group"]]       = group
   out[["results"]]     = global_table_df
   out[["BICW_rhythm"]] = BICW

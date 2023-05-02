@@ -70,9 +70,10 @@ diffzone=function(countData,group,zone,sample_name=colnames(countData),batch=rep
   # FIT Zonation
 
   message("fitting zonation models")
-
+  message("create models list")
   models = create_matrix_list(zone,group, N)
   #Reorder u, a, b
+  message("reorder, u, a,")
   models = lapply(models, function(l) l[,c(grep("u",colnames(l)),grep("a|b",colnames(l)))]   )
 
   for (i in 1:length(models)){
@@ -87,7 +88,7 @@ diffzone=function(countData,group,zone,sample_name=colnames(countData),batch=rep
   }
 
   dds = DESeqDataSetFromMatrix(countData = countData, colData = colData,  design=~1)
-  dds.full = DESeq2::DESeq(dds, full=models[[length(models)]], betaPrior = F, fitType = "parametric", test = "Wald", parallel =T, quiet = T)
+  dds.full = DESeq2::DESeq(dds, full=models[[length(models)]], betaPrior = F, fitType = "parametric", test = "Wald", parallel =F, quiet = F)
 
   deviances = sapply(models[-length(models)], function(m){
     dds.x = DESeq2::nbinomWaldTest(dds.full, modelMatrix= m, betaPrior = F, quiet = T)
@@ -182,7 +183,7 @@ diffzone=function(countData,group,zone,sample_name=colnames(countData),batch=rep
   }
 
   parameters            = data.frame(do.call(rbind.data.frame, parameters))
-  colnames(parameters)  = c(paste(c('mean','a','b','amp','relamp','phase'),rep(unique(group),each =6), sep = "_"))
+  colnames(parameters)  = c(paste(c('mean','a','b'),rep(unique(group),each =3), sep = "_"))
   parameters            = parameters[rownames(countData),]
 
   # Generate all the count and expression data

@@ -318,14 +318,14 @@ annotate_matrix = function(m,group){
 }
 
 #####################################
-dry_plot = function (dryList, gene)
+diffzone_plot = function (dryList, gene)
 {
   normal = FALSE
   if("ncounts" %in% names(dryList)){vsd        = log2(dryList[["ncounts"]]+1)}
   if("values" %in% names(dryList)){vsd         = dryList[["values"]]
                                    normal = T}
 
-  parameters = dryList[["parameters"]][,grep("^mean|^a_|^b_|^amp|^phase|^relamp",colnames(dryList[["parameters"]]))]
+  parameters = dryList[["parameters"]][,grep("^mean|^a_|^b_",colnames(dryList[["parameters"]]))]
 
   ID = rownames(dryList[["results"]] )[grep(paste0('^',gene,'$'),rownames(dryList[["results"]] ))]
 
@@ -336,12 +336,12 @@ dry_plot = function (dryList, gene)
 
   d$group            = dryList[["group"]]
 
-  d$time            = as.numeric(dryList[["time"]])
-  d$time            = d$time%%24
+  d$zone            = as.numeric(dryList[["zone"]])
+  d$zone            = d$zone%%24
 
-  suppressWarnings({ d <- Rmisc::summarySE(d, measurevar="value", groupvars=c("time","group")) })
+  suppressWarnings({ d <- Rmisc::summarySE(d, measurevar="value", groupvars=c("zone","group")) })
 
-  v = seq(0,24,1)
+  v = seq(1,5,1)
   fit_d_0 = parameters[which(rownames(parameters)==ID),grep("mean",colnames(parameters))] # intercept
   fit_d_1 = parameters[which(rownames(parameters)==ID),grep("a_",colnames(parameters))] # coefficient a
   fit_d_2 = parameters[which(rownames(parameters)==ID),grep("^b_",colnames(parameters))] # coefficient b
@@ -356,7 +356,7 @@ dry_plot = function (dryList, gene)
   dd$v = v
 
   fit_values = function (x,n)
-  { as.numeric((fit_d_0[n] + fit_d_1[n]*cos(2*pi*x/24)  + fit_d_2[n]*sin(2*pi*x/24)))  }
+  { as.numeric((fit_d_0[n] + fit_d_1[n]*x  + fit_d_2[n]*0.5*(3*x^2-1)))  }
 
   for (u in 1:length(unique(d$group))){
     m[,u+1]  = NA
@@ -368,22 +368,22 @@ dry_plot = function (dryList, gene)
   colnames(m) =  unique(dryList[["group"]])
 
   m =  reshape2::melt(m, , id.vars = NULL)
-  m$time = rep(v, length(unique(d$group)))
+  m$zone = rep(v, length(unique(d$group)))
 
-  colnames(m)       = c("group","value","time")
+  colnames(m)       = c("group","value","zone")
 
   if(normal==FALSE) {m$value[which(m$value<0)] = 0}
 
-  gg1 = ggplot(d, aes(x=time, y=value, group=group, color=group)) +
+  gg1 = ggplot(d, aes(x=zone, y=value, group=group, color=group)) +
     geom_errorbar(aes(ymin=value-se, ymax=value+se), width=.4) +
     geom_point(size=2, shape=19) +
-    xlab("Time (h)") +
+    xlab("Zone") +
     ylab("Log2 normalized counts") +
     ggtitle(ID) +
-    scale_x_continuous(breaks=c(0,6,12,18,24,30)) +
+    scale_x_continuous(breaks=c(1,2,3,4,5)) +
     theme_bw(base_size = 10) +
     theme(aspect.ratio = 1, panel.grid.minor=element_blank(), legend.position = "right") +
-    geom_line(aes(x=time, y=(value), group=group), data = m, position=position_dodge(width=0.5)) +
+    geom_line(aes(x=zone, y=(value), group=group), data = m, position=position_dodge(width=0.5)) +
     facet_wrap(~group)
 
   gg1

@@ -174,6 +174,7 @@ diffzone=function(countData,group,zone,sample_name=colnames(countData),batch=rep
   parameters=NULL
 
   parameters =  foreach (i = 1:nrow(deviance_mean)) %dopar% {
+    print(i)
     gene = rownames(deviance_mean)[i]
     cm_r = chosen_model[i]
     cm_m = chosen_model_mean[i]

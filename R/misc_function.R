@@ -170,15 +170,15 @@ compute_param_l = function(dds, period=T_, N){
 }
 
 #####################################
-create_matrix_list = function(t, conds, n.co, period){
+create_matrix_list = function(t, conds, n.co){
   require(combinat)
 
   my_matrix = list()
 
-  c <- cos(2*pi*t/period)
-  s <- sin(2*pi*t/period)
+  p1 <- t
+  p2 <- 0.5*(3*t^2-1)
 
-  MAT <- cbind(rep(1,length(t)),c[1:length(t)],s[1:length(t)])
+  MAT <- cbind(rep(1,length(t)),p1[1:length(t)],p2[1:length(t)])
   GMAT <- matrix(NA,ncol=3*n.co, nrow =length(t))
   rownames(GMAT) <- conds
   colnames(GMAT) <- c(paste(c('u','a','b'),rep(1:n.co,each =3), sep = "."))
